@@ -1,0 +1,59 @@
+#createPartition.yml
+#partion/lvm /dir /mount dir
+- name: Create Partition And LVM 
+  hosts: lvm_hosts
+  remote_user: alice
+  become: true
+  become_method: sudo
+  become_user: root
+
+#variables
+  vars:
+    fsDevice: "/dev/{{ volumeGroup }}/{{ logicalVolume }}"
+  tasks:
+        - name: Create Partion
+          parted:
+            device: "{{ device }}"
+            number: 1
+            label: gpt
+            part_type: primary 
+            flags: [ lvm ]
+            state: present
+            
+        - name: Create LVM volume group
+          lvg:
+             pvs: "{{ device }}1" 
+             state: present
+             vg: "{{ volumeGroup }}"
+        
+        - name: Create LVM logical volume
+          lvol:
+            vg: "{{ volumeGroup }}"
+            lv: "{{ logicalVolume }}"
+            size: "{{ size }}"
+            
+        - name: Create Filesystem
+          filesystem:
+            fstype: "{{ fstype }}"
+            dev: "{{ fsDevice }}"
+            
+        - name: Create Dir
+          file:
+             path: "{{ dirPath }}" 
+             state: directory
+             
+        - name: Mount directory to LVM
+          mount:
+            path: "{{ dirPath }}"
+            src: "{{ fsDevice }}" 
+            fstype: "{{ fstype }}"
+            opts: "{{ mountOptions }}" 
+            state: mounted
+            
+        - name: Change permission
+          file:
+             owner: "{{ dirOwner }}"
+             group: "{{ dirGroup }}"
+             mode: "{{ dirMode }}" 
+             recurse: yes
+             path: "{{ dirPath }}"
