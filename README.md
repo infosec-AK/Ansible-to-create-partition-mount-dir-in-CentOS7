@@ -1,0 +1,1 @@
+# Ansible-to-create-partition-mount-dir-in-CentOS7
